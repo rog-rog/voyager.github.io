@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voyager Tracker | Live Mission Status</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-card-hover: #1a1a25;
+            --border: #2a2a3a;
+            --text: #e0e0e8;
+            --text-dim: #8888a0;
+            --accent-v1: #00d4ff;
+            --accent-v2: #ff6b35;
+            --accent-gold: #ffd700;
+            --danger: #ff4757;
+            --success: #2ed573;
+            --warning: #ffa502;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        header {
+            background: linear-gradient(180deg, rgba(18,18,26,0.95) 0%, rgba(10,10,15,0) 100%);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: conic-gradient(from 0deg, var(--accent-v1), var(--accent-v2), var(--accent-gold));
+            border-radius: 50%;
+            animation: spin 20s linear infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .logo-icon::after {
+            content: 'V';
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--bg-dark);
+        }
+        
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: linear-gradient(90deg, var(--accent-v1), var(--accent-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .timestamp {
+            color: var(--text-dim);
+            font-size: 0.875rem;
+        }
+        
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .hero {
+            text-align: center;
+            padding: 3rem 0;
+            position: relative;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(0,212,255,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        
+        .hero h2 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .hero .subtitle {
+            color: var(--text-dim);
+            font-size: 1.125rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .light-day-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--accent-gold);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            margin-top: 1.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .light-day-badge .pulse {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-gold);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--text-dim);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .probe-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+            color: var(--bg-dark);
+        }
+        
+        .probe-icon.v1 {
+            background: var(--accent-v1);
+        }
+        
+        .probe-icon.v2 {
+            background: var(--accent-v2);
+        }
+        
+        .card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-weight: 500;
+        }
+        
+        .status-badge.active {
+            background: rgba(46,213,115,0.15);
+            color: var(--success);
+        }
+        
+        .status-badge.warning {
+            background: rgba(255,165,2,0.15);
+            color: var(--warning);
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        
+        .stat {
+            padding: 0.75rem;
+            background: rgba(255,255,255,0.02);
+            border-radius: 0.5rem;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-value {
+            font-size: 1.125rem;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .stat-value.v1 {
+            color: var(--accent-v1);
+        }
+        
+        .stat-value.v2 {
+            color: var(--accent-v2);
+        }
+        
+        .stat-sub {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .comparison-section {
+            margin: 3rem 0;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(0,212,255,0.05), rgba(255,107,53,0.05));
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+        }
+        
+        .comparison-section h3 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 2rem;
+            text-align: center;
+        }
+        
+        .comparison-item {
+            padding: 1rem;
+            background: rgba(0,0,0,0.2);
+            border-radius: 0.75rem;
+        }
+        
+        .comparison-item .number {
+            font-size: clamp(1.25rem, 3vw, 2rem);
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-gold);
+            word-break: break-all;
+            line-height: 1.3;
+        }
+        
+        .comparison-item .label {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+        
+        .instruments-section {
+            margin: 2rem 0;
+        }
+        
+        .instruments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+        
+        .instrument-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .instrument-name {
+            font-weight: 500;
+        }
+        
+        .instrument-abbr {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .toggle-status {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+        }
+        
+        .toggle-status.on {
+            background: rgba(46,213,115,0.15);
+            color: var(--success);
+        }
+        
+        .toggle-status.off {
+            background: rgba(255,71,87,0.15);
+            color: var(--danger);
+        }
+        
+        .destination-section {
+            margin: 2rem 0;
+            padding: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+        }
+        
+        .destination-section h3 {
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+        
+        .destination-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .destination-card {
+            padding: 1.5rem;
+            background: rgba(255,255,255,0.02);
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+        }
+        
+        .destination-card.v1 {
+            border-color: rgba(0,212,255,0.3);
+        }
+        
+        .destination-card.v2 {
+            border-color: rgba(255,107,53,0.3);
+        }
+        
+        .destination-card h4 {
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .destination-card h4.v1 {
+            color: var(--accent-v1);
+        }
+        
+        .destination-card h4.v2 {
+            color: var(--accent-v2);
+        }
+        
+        .destination-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .destination-info dt {
+            color: var(--text-dim);
+            font-size: 0.875rem;
+        }
+        
+        .destination-info dd {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+        }
+        
+        .golden-record {
+            margin: 3rem 0;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,215,0,0.02));
+            border: 1px solid var(--accent-gold);
+            border-radius: 1rem;
+            text-align: center;
+        }
+        
+        .golden-record h3 {
+            color: var(--accent-gold);
+            margin-bottom: 1rem;
+        }
+        
+        .golden-record p {
+            color: var(--text-dim);
+            max-width: 600px;
+            margin: 0 auto 1rem;
+        }
+        
+        .golden-record .contents {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .golden-record .contents span {
+            background: var(--bg-card);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-dim);
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            border-top: 1px solid var(--border);
+            margin-top: 2rem;
+            color: var(--text-dim);
+            font-size: 0.875rem;
+        }
+        
+        .footer a {
+            color: var(--accent-v1);
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            main {
+                padding: 1rem;
+            }
+            
+            .hero {
+                padding: 2rem 0;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon"></div>
+                <h1>Voyager Tracker</h1>
+            </div>
+            <div class="timestamp mono">
+                <span id="currentTime">--</span> UTC
+            </div>
+        </div>
+    </header>
+    
+    <main>
+        <section class="hero">
+            <h2>Live at the Edge of Forever</h2>
+            <p class="subtitle">Tracking humanity's furthest travelers as they venture into the cosmic void beyond our solar system.</p>
+            <div class="light-day-badge">
+                <span class="pulse"></span>
+                <span class="mono">Voyager 1 reaches 1 light-day in ~200 days</span>
+            </div>
+        </section>
+        
+        <section class="grid">
+            <article class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="probe-icon v1">1</div>
+                        <h3>Voyager 1</h3>
+                    </div>
+                    <span class="status-badge active">ACTIVE</span>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat">
+                        <div class="stat-label">Distance from Earth</div>
+                        <div class="stat-value v1 mono" id="v1-distance">--</div>
+                        <div class="stat-sub" id="v1-distance-km">-- km</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Light-Time (one-way)</div>
+                        <div class="stat-value v1 mono" id="v1-light-time">--</div>
+                        <div class="stat-sub">signal delay</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Speed (km/h)</div>
+                        <div class="stat-value v1 mono" id="v1-speed-kmh">61,000</div>
+                        <div class="stat-sub" id="v1-speed-mph">~38,000 mph</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Distance per Second</div>
+                        <div class="stat-value v1 mono" id="v1-dps">17.0</div>
+                        <div class="stat-sub">km/s</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Position</div>
+                        <div class="stat-value v1 mono">Ophiuchus</div>
+                        <div class="stat-sub">constellation</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Light-Days Away</div>
+                        <div class="stat-value v1 mono" id="v1-light-days">0.98</div>
+                        <div class="stat-sub">from Earth</div>
+                    </div>
+                </div>
+            </article>
+            
+            <article class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="probe-icon v2">2</div>
+                        <h3>Voyager 2</h3>
+                    </div>
+                    <span class="status-badge active">ACTIVE</span>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat">
+                        <div class="stat-label">Distance from Earth</div>
+                        <div class="stat-value v2 mono" id="v2-distance">--</div>
+                        <div class="stat-sub" id="v2-distance-km">-- km</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Light-Time (one-way)</div>
+                        <div class="stat-value v2 mono" id="v2-light-time">--</div>
+                        <div class="stat-sub">signal delay</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Speed (km/h)</div>
+                        <div class="stat-value v2 mono" id="v2-speed-kmh">56,000</div>
+                        <div class="stat-sub" id="v2-speed-mph">~35,000 mph</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Distance per Second</div>
+                        <div class="stat-value v2 mono" id="v2-dps">15.4</div>
+                        <div class="stat-sub">km/s</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Position</div>
+                        <div class="stat-value v2 mono">Pavo</div>
+                        <div class="stat-sub">constellation</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Light-Days Away</div>
+                        <div class="stat-value v2 mono" id="v2-light-days">0.82</div>
+                        <div class="stat-sub">from Earth</div>
+                    </div>
+                </div>
+            </article>
+        </section>
+        
+        <section class="comparison-section">
+            <h3>Distance Between Voyager 1 & 2</h3>
+            <div class="comparison-grid">
+                <div class="comparison-item">
+                    <div class="number mono" id="distance-between">--</div>
+                    <div class="label">kilometers apart</div>
+                </div>
+                <div class="comparison-item">
+                    <div class="number mono" id="distance-between-mi">--</div>
+                    <div class="label">miles apart</div>
+                </div>
+                <div class="comparison-item">
+                    <div class="number mono">27.5</div>
+                    <div class="label">AU apart</div>
+                </div>
+                <div class="comparison-item">
+                    <div class="number mono">0.32</div>
+                    <div class="label">light-days apart</div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="card instruments-section">
+            <h3 style="margin-bottom: 1.5rem;">Instrument Status</h3>
+            <div class="instruments-grid">
+                <div class="instrument-card">
+                    <div>
+                        <div class="instrument-name">Cosmic Ray Subsystem</div>
+                        <div class="instrument-abbr">CRS</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div><span class="toggle-status off">OFF</span> <span class="instrument-abbr">V1</span></div>
+                        <div><span class="toggle-status on">ON</span> <span class="instrument-abbr">V2</span></div>
+                    </div>
+                </div>
+                <div class="instrument-card">
+                    <div>
+                        <div class="instrument-name">Low-Energy Charged Particles</div>
+                        <div class="instrument-abbr">LECP</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div><span class="toggle-status on">ON</span> <span class="instrument-abbr">V1</span></div>
+                        <div><span class="toggle-status off">OFF</span> <span class="instrument-abbr">V2</span></div>
+                    </div>
+                </div>
+                <div class="instrument-card">
+                    <div>
+                        <div class="instrument-name">Magnetometer</div>
+                        <div class="instrument-abbr">MAG</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div><span class="toggle-status on">ON</span> <span class="instrument-abbr">V1</span></div>
+                        <div><span class="toggle-status on">ON</span> <span class="instrument-abbr">V2</span></div>
+                    </div>
+                </div>
+                <div class="instrument-card">
+                    <div>
+                        <div class="instrument-name">Plasma Science</div>
+                        <div class="instrument-abbr">PLS</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div><span class="toggle-status off">OFF</span> <span class="instrument-abbr">V1</span></div>
+                        <div><span class="toggle-status off">OFF</span> <span class="instrument-abbr">V2</span></div>
+                    </div>
+                </div>
+                <div class="instrument-card">
+                    <div>
+                        <div class="instrument-name">Imaging Science</div>
+                        <div class="instrument-abbr">ISS</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div><span class="toggle-status off">OFF</span> <span class="instrument-abbr">V1</span></div>
+                        <div><span class="toggle-status off">OFF</span> <span class="instrument-abbr">V2</span></div>
+                    </div>
+                </div>
+                <div class="instrument-card">
+                    <div>
+                        <div class="instrument-name">Ultraviolet Spectrometer</div>
+                        <div class="instrument-abbr">UVS</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div><span class="toggle-status off">OFF</span> <span class="instrument-abbr">V1</span></div>
+                        <div><span class="toggle-status off">OFF</span> <span class="instrument-abbr">V2</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="card" style="margin: 2rem 0;">
+            <h3 style="margin-bottom: 1.5rem;">Launch History</h3>
+            <div class="stat-grid">
+                <div class="stat">
+                    <div class="stat-label">Voyager 1 Launch</div>
+                    <div class="stat-value mono">Sept 5, 1977</div>
+                    <div class="stat-sub">12:56 UTC from Kennedy Space Center</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Voyager 2 Launch</div>
+                    <div class="stat-value mono">Aug 20, 1977</div>
+                    <div class="stat-sub">14:29 UTC from Kennedy Space Center</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Years in Space (V1)</div>
+                    <div class="stat-value mono" id="v1-years">48+</div>
+                    <div class="stat-sub">since launch</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Years in Space (V2)</div>
+                    <div class="stat-value mono" id="v2-years">48+</div>
+                    <div class="stat-sub">since launch</div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="destination-section">
+            <h3>Stellar Destinations</h3>
+            <div class="destination-grid">
+                <div class="destination-card v1">
+                    <h4>Gliese 445 (AC+79 3888)</h4>
+                    <p style="color: var(--text-dim); font-size: 0.875rem; margin-bottom: 1rem;">Voyager 1's future encounter</p>
+                    <dl class="destination-info">
+                        <dt>Type</dt>
+                        <dd>M-dwarf (Red Dwarf)</dd>
+                        <dt>Current Distance</dt>
+                        <dd>17.1 light-years</dd>
+                        <dt>Encounter Distance</dt>
+                        <dd>~1.6 light-years</dd>
+                        <dt>Expected Arrival</dt>
+                        <dd class="mono">~40,000 years</dd>
+                        <dt>Star Mass</dt>
+                        <dd>0.14 M☉</dd>
+                    </dl>
+                </div>
+                <div class="destination-card v2">
+                    <h4>AC+79 3888 (Observed name)</h4>
+                    <p style="color: var(--text-dim); font-size: 0.875rem; margin-bottom: 1rem;">Voyager 2's trajectory</p>
+                    <dl class="destination-info">
+                        <dt>Type</dt>
+                        <dd>Heading toward Sirius area</dd>
+                        <dt>Direction</dt>
+                        <dd>Toward Canis Major</dd>
+                        <dt>Next Notable Star</dt>
+                        <dd class="mono">~TYC 3135-52-1</dd>
+                        <dt>Expected Arrival</dt>
+                        <dd class="mono">~303,000 years</dd>
+                        <dt>Closest Approach</dt>
+                        <dd>0.965 light-years</dd>
+                    </dl>
+                </div>
+            </div>
+        </section>
+        
+        <section class="golden-record">
+            <h3>The Golden Record</h3>
+            <p>Both Voyager spacecraft carry a phonograph record — a time capsule intended to communicate a story of our world's diversity to intelligent extraterrestrial life.</p>
+            <div class="contents">
+                <span>115 Images</span>
+                <span>Greetings in 55 languages</span>
+                <span>Sounds of Earth</span>
+                <span>90 min of music</span>
+                <span>Brain scans</span>
+                <span>DNA structure</span>
+                <p style="font-size: 0.875rem; color: var(--accent-gold); margin-top: 0.5rem;">Including "Dark Was the Night, Cold Was the Ground" by Blind Willie Johnson</p>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="footer">
+        <p>Live tracking from NASA JPL Horizons data. Base reference: March 14, 2026. <span id="dataTimestamp"></span></p>
+        <p style="margin-top: 0.5rem;">Voyager Tracker — A tribute to humanity's journey into the cosmos</p>
+        <p style="margin-top: 0.5rem;">Built with precision based on publicly available NASA data</p>
+    </footer>
+    
+    <script>
+        const LIGHT_DAY_KM = 25902068359000;
+        const AU_KM = 149597870.7;
+        
+        const REFERENCE_DATE = new Date('2026-03-14T13:45:00Z');
+        
+        const v1Data = {
+            distanceKm: 25410470036000,
+            speedKmS: 17.0267,
+            au: 169.86
+        };
+        
+        const v2Data = {
+            distanceKm: 21346784350000,
+            speedKmS: 15.435,
+            au: 142.69
+        };
+        
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+        
+        function formatLightTime(km) {
+            const lightSpeedKmS = 299792.458;
+            const seconds = km / lightSpeedKmS;
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${hours}h ${minutes}m ${secs}s`;
+        }
+        
+        function formatLightDays(km) {
+            return (km / LIGHT_DAY_KM).toFixed(2);
+        }
+        
+        function formatLargeDistance(km) {
+            if (km >= 1e12) {
+                return (km / 1e12).toFixed(2) + ' trillion';
+            } else if (km >= 1e9) {
+                return (km / 1e9).toFixed(2) + ' billion';
+            } else if (km >= 1e6) {
+                return (km / 1e6).toFixed(2) + ' million';
+            } else {
+                return formatNumber(Math.round(km));
+            }
+        }
+        
+        function updateDisplay() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toUTCString().slice(17, 25);
+            
+            const secondsSinceReference = (now - REFERENCE_DATE) / 1000;
+            
+            const currentV1Distance = v1Data.distanceKm + (v1Data.speedKmS * secondsSinceReference);
+            const currentV2Distance = v2Data.distanceKm + (v2Data.speedKmS * secondsSinceReference);
+            
+            const lastUpdatedDays = ((now - REFERENCE_DATE) / (1000 * 60 * 60 * 24)).toFixed(0);
+            document.getElementById('dataTimestamp').textContent = `${lastUpdatedDays} days of live tracking`;
+            
+            document.getElementById('v1-distance').textContent = 
+                formatLargeDistance(currentV1Distance);
+            document.getElementById('v1-distance-km').textContent = 
+                formatNumber(Math.round(currentV1Distance)) + ' km';
+            document.getElementById('v1-light-time').textContent = 
+                formatLightTime(currentV1Distance);
+            document.getElementById('v1-speed-kmh').textContent = 
+                formatNumber(Math.round(v1Data.speedKmS * 3600));
+            document.getElementById('v1-speed-mph').textContent = 
+                '~' + formatNumber(Math.round(v1Data.speedKmS * 3600 * 0.621371)) + ' mph';
+            document.getElementById('v1-dps').textContent = v1Data.speedKmS.toFixed(1);
+            document.getElementById('v1-light-days').textContent = formatLightDays(currentV1Distance);
+            document.getElementById('v1-years').textContent = 
+                Math.floor((now - new Date('1977-09-05')) / (365.25 * 24 * 60 * 60 * 1000)) + '+';
+            
+            document.getElementById('v2-distance').textContent = 
+                formatLargeDistance(currentV2Distance);
+            document.getElementById('v2-distance-km').textContent = 
+                formatNumber(Math.round(currentV2Distance)) + ' km';
+            document.getElementById('v2-light-time').textContent = 
+                formatLightTime(currentV2Distance);
+            document.getElementById('v2-speed-kmh').textContent = 
+                formatNumber(Math.round(v2Data.speedKmS * 3600));
+            document.getElementById('v2-speed-mph').textContent = 
+                '~' + formatNumber(Math.round(v2Data.speedKmS * 3600 * 0.621371)) + ' mph';
+            document.getElementById('v2-dps').textContent = v2Data.speedKmS.toFixed(1);
+            document.getElementById('v2-light-days').textContent = formatLightDays(currentV2Distance);
+            document.getElementById('v2-years').textContent = 
+                Math.floor((now - new Date('1977-08-20')) / (365.25 * 24 * 60 * 60 * 1000)) + '+';
+            
+            const v1v2Distance = Math.abs(currentV1Distance - currentV2Distance);
+            document.getElementById('distance-between').textContent = 
+                formatLargeDistance(v1v2Distance);
+            document.getElementById('distance-between-mi').textContent = 
+                formatLargeDistance(v1v2Distance * 0.621371);
+            
+            const daysToLightDay = ((currentV1Distance / LIGHT_DAY_KM) - 1) * 365;
+            document.querySelector('.light-day-badge .mono').textContent = 
+                `~${Math.max(0, Math.round(daysToLightDay))} days to 1 light-day`;
+        }
+        
+        setInterval(updateDisplay, 1000);
+        updateDisplay();
+    </script>
+</body>
+</html>
